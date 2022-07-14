@@ -16,6 +16,11 @@ train a neural network to do this!
 Think about it like a machine translation problem, but instead of translating from Spanish to English,
 it would be from amplitude to squared amplitude or maybe even from some representation of the diagram to the squared amplitude.
 My group has already published a [paper](https://arxiv.org/abs/2206.08901) on exactly this, so I don't have to start from zero.
+Hakim has already built models for QED and QCD that work remarkably well.
+I am planing to extend his work.
+First of all I want to encode the mathematical expressions using prefix notation where Hakim used
+Tensorflow's [Tokenizer](https://www.tensorflow.org/api_docs/python/tf/keras/preprocessing/text/Tokenizer).
+I also plan to play around with different neural network structures.
 
 
 ## Feynman Diagrams
