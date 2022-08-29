@@ -45,6 +45,7 @@ This way we save one of the parentheses that I had in the first post and also do
 
 However, the squared amplitudes now still have too many tokens. Thus, there are a few tricks we can perform.
 Basically we add new words to the dictionary in order to save on token length. 
+For lack of a better word I will call this "mass-token-shortening":
 - convert all $$m_y^n$$ to `mny`, e.g. $$m_\mu^2$$ becomes $$m2mu$$, 
 - convert all $$mny * s_{ij}$$ to `mnysij`
 
@@ -113,11 +114,12 @@ There are a few ideas that come to mind:
 - This is also how beam search works. With beam search, motivated by the [Symbolic Mathematics Facebook paper](https://arxiv.org/abs/1912.01412), one could do beam search and compare the best results one gets. In the paper they found that their model predicted the same solution, just in different, but equivalent "spellings". If the model predicts equivalent solutions for the top say 2 or 3 solutions, then it's also a good indicator that the solution might be correct?
 
 # ToDo next:
-- write a parser for hybrid prefix notation to SYMPY. Once this is done I can numerically check the results by plugging in random numbers. This is one of the metrics used in [the SYMBA paper](https://arxiv.org/pdf/2206.08901.pdf),
-- simplify $$3\to 3$$ data and train model,
-- generate QCD data,
-- beam serach and certainty measures,
-- switch to PyTorch for the transformer model.
+- [ ] write a parser for hybrid prefix notation to SYMPY. Once this is done I can numerically check the results by plugging in random numbers. This is one of the metrics used in [the SYMBA paper](https://arxiv.org/pdf/2206.08901.pdf),
+- [ ] simplify $$3\to 3$$ data and train model,
+- [ ] generate QCD data,
+- [ ] beam serach and certainty measures,
+- [ ] switch to PyTorch for the transformer model.
+- [ ] graphs with comparison between prefix, hybrid-prefix and hybrid-prefix + mass-token-shortening
 
 
 
