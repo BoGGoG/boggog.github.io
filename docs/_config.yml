@@ -30,6 +30,7 @@ github_username:  boggog
 theme: minima
 plugins:
   - jekyll-feed
+  # - jekyll-spaceship
 
 kramdown:
   math_engine: katex
