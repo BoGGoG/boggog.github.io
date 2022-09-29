@@ -8,52 +8,25 @@ categories: machine learning feynman physics symba
 This is the concluding post to the GCoC [SYMBA project]({% post_url 2022-07-14-Introduction-Feynman-Amplitudes-Project %}).
 I doees not mean that I won't be posting about it any more, but it's for the official ending of theh GSoC project.
 
-* [Introduction](#introduction)
-* [Data Generation](#data-generation)
-   * [Preprocessing](#preprocessing)
-      * [Amplitudes](#amplitudes)
-      * [Squared Amplitudes](#squared-amplitudes)
-   * [Encoding of Expressions](#encoding-of-expressions)
-* [Transformer Model](#transformer-model)
-* [Training](#training)
-* [Inference](#inference)
-   * [Beam Search](#beam-search)
-   * [Estimation of Uncertainties](#estimation-of-uncertainties)
-* [Evaluation](#evaluation)
-   * [Viable Evaluation Measures](#viable-evaluation-measures)
-   * [Results](#results)
-* [Interpretation and Conclusion](#interpretation-and-conclusion)
-* [Acknowledgements](#acknowledgements)
-
 ## Introduction
 
 In quantum field theory (QFT) so called "Feynman diagrams" arise naturally when calculating things in a perturbative manner.
 For example, the [scattering-matrix](https://en.wikipedia.org/wiki/S-matrix) (S-matrix) describes the scattering of particles in QFT.
-Using [Wick's theorem](https://en.wikipedia.org/wiki/Wick%27s_theorem) to get the perturbative expansion,
+Using [Wick's theorem](https://en.wikipedia.org/wiki/Wick%27s_theorem) to gete the perturbative expansion,
 each order can be represented as a sum of Feynman diagrams.
-While the expansion can be divergent (as described in [one of my earlier posts]({% post_url 2022-07-14-Introduction-Feynman-Amplitudes-Project %})),
+While the expansion is divergent (as described in [one of my earlier posts]({% post_url 2022-07-14-Introduction-Feynman-Amplitudes-Project %})),
 they are still incredibly useful and the asymptotic character of the series will only reveal itself directly at orders that
 probably will never be accessible.
 
 So what can one do with Feynman diagrams?
 Well, each diagram stands for a specific integral that can be constructed using the [Feynman rules](https://en.wikipedia.org/wiki/Feynman_diagram#Feynman_rules)
 for the specific theory you are working with.
-The diagrams can be interpreted in form of particles that interact, e.g. in the diagram below 
-[[from wikipedia](https://en.wikipedia.org/wiki/Feynman_diagram)]
-<p align="center">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Feynmann_Diagram_Gluon_Radiation.svg/1280px-Feynmann_Diagram_Gluon_Radiation.svg.png">
-</p>
-an electron $$e^-$$ and a positron $$e^+$$ come in and annihilate to produce a photon $$\gamma$$.
-This (virtual) photon decays into a quark $$q$$ and an anti-quark $$\bar{q}$$.
-The anti-quark emmits a gluon $$g$$ on its way.
-
 Performing the integral will give you the _amplitude_ $$\mathcal{M}$$ of the diagram.
 This amplitude is complex valued and usually contains lots of Lorentz indices $$\alpha, \beta, \gamma$$, $$\gamma$$-matrices $$\gamma^i_{\mu\nu}$$ and "basis vectors" $$u(p, \sigma)$$.
 Squaring the amplutude involves calculating traces over $$\gamma$$-matrices, spin-sums and other tricks,
 so it is far from trivial.
-For an introduction and example see [Feynman Diagrams for Beginners](https://arxiv.org/pdf/1602.04182.pdf).
 With the squared amplitude however, one can then calculate measurable quantities.
-For a scattering process $$2\to 2$$ this would be the _differential [scattering cross section](https://en.wikipedia.org/wiki/Cross_section_(physics))_ $$\mathrm{d}\sigma(1 + 2 \to 1' + 2' + ... + n')$$, see for example [here](https://arxiv.org/pdf/1602.04182.pdf):
+For a scattering process $$2\to 2$$ this would be be _differential [scattering cross section](https://en.wikipedia.org/wiki/Cross_section_(physics))_ $$\mathrm{d}\sigma(1 + 2 \to 1' + 2' + ... + n')$$, see for example [here](https://arxiv.org/pdf/1602.04182.pdf):
 
 $$
 \frac{\mathrm{d}\sigma_\mathrm{CM}}{\mathrm{d}\Omega} = \frac{1}{64 \pi^2 (E_1 + E_2)^2} \frac{|p_3|}{|p_1|} \bar{|\mathcal{M}|^2}\,,
@@ -95,9 +68,9 @@ The intended use is to build a C++ library which can then be used numerically.
 The export of symbolic amplitudes and squared amplitudes can be achived with some tricks,
 but I had troubles looping over particles.
 Thus the data generation workflow is the following:
-- there is a [C++ program](https://github.com/BoGGoG/SYMBA-Prefix/blob/main/data-generation-marty/QED/QED_AllParticles_IO.cpp) for the calculation and export of amplitudes and squared amplitudes.
-This program can be called from the command line and takes as input the names of the in- and out-particles as well as the file names where the amplitudes and squared amplitudes should be saved.
-The program already exports the amplitudes in some form of prefix notation or more precicely in some
+- there is a [C++ script](https://github.com/BoGGoG/SYMBA-Prefix/blob/main/data-generation-marty/QED/QED_AllParticles_IO.cpp) for the calculation and export of amplitudes and squared amplitudes.
+This script can be called from the command line and takes as input the names of the in- and out-particles as well as the file names where the amplitudes and squared amplitudes should be saved.
+The script already exports the amplitudes in some form of prefix notation or more precicely in some
 form of abstract syntax tree.
 It was easier to do it this way than write a parser in python for them in Python.
 - in a separate [Python script](https://github.com/BoGGoG/SYMBA-Prefix/blob/main/data-generation-marty/QED/QED_loop_insertions_parallel.py)
@@ -243,7 +216,6 @@ The code is mostly an adapted version of [keras's english-to-spanish translation
 I have to admit that I am not satisfied this, but the other parts have simply taken so long that not enough
 time was left for a better model.
 The transformer has an embedding dimension of 256, a latent dimension of 2048 and 8 heads.
-For the maximal sequence length 350 has been chosen.
 Usually for language models the embedding dimension is much higher, but I thought since we only have a
 rather small number of unique "words" as opposed to the thousands of different words in language translation,
 a smaller embedding dimension would maybe make sense.
@@ -251,23 +223,7 @@ For tokenization Tensorflow's [`TextVectorization`](https://www.tensorflow.org/a
 
 ## Training
 
-Training is done through next token prediction and categorical cross entropy loss.
-Let's say the amplitude is `x` and the squared amplitude is `y`.
-Then for each sequence `y` that is to be predicted, sub-sequences `y[0:i]`, $$i\geq 1$$ are constructed
-and from `(x, y[0:i-1])` the models tries to predict `[y[i]]`.
-The sequences `y` are padded with a `[START]` token in the beginning and an `[END]` token in the end.
-
-For optimizer ADAM was used.
-In the original transformer paper [Attention is all you need](https://arxiv.org/pdf/1706.03762.pdf) they have a varying learning rate 
-<p align="center">
-  <img src="/figures/2022-08-29_learning_rate.png">
-</p>
-I had also read about [super convergence](https://towardsdatascience.com/https-medium-com-super-convergence-very-fast-training-of-neural-networks-using-large-learning-rates-decb689b9eb0)
-and wanted to try something similar and so now my learning rate looks like this:
-<p float="center">
-  <img src="/figures/learning_rate_schedule.png" width="49%" />
-</p>
-This turned out to work much better than a fixed learning rate.
+asdf
 
 ## Inference
 
@@ -276,9 +232,9 @@ We start with the amplitude and only a `[START]` token for the squared amplitude
 Then we predict one token after the other, e.g. after the first prediction we would have
 `[START] add` and after the second we would have `[START] add 8` and so on.
 For each predicted token there is a probability given by the model.
-Say for the first token the probabilities are `["8": 80%, "16": 19%, "2": 0.01%, ...]`.
+Say for the first token the probabilities are `"8": 80%`, `"16": 19%` and so on.
 Then one chooses the "8", because it has the highest probability.
-We stop once the `[END]` token is predicted or the maximal sequence length is reached.
+We stop once the `[END]` token is predicted.
 
 ### Beam Search
 For a good introduction to beam search see [this blogpost](https://www.width.ai/post/what-is-beam-search)
@@ -319,7 +275,9 @@ is usually used.
 An extension is [METEOR](https://en.wikipedia.org/wiki/METEOR).
 Other scores are the [ROUGE](https://en.wikipedia.org/wiki/ROUGE_(metric))
 or also [Perplexity](https://en.wikipedia.org/wiki/Perplexity).
-Most of those scores are tuned for natural language processing and while our problem
+
+Of course, next-token-accuaracy is the easiest one to calculate.
+Also, I most other scores are tuned for natural language processing and while our problem
 of squaring amplitudes is formulated the same way as natural language tasks, namely as a
 seq2seq problem, I think there are differences that justify a different evaluation.
 First, we have one correct solution.
@@ -329,113 +287,19 @@ between two solutions that are written in a different way, e.g. $$a+b$$ and $$b+
 or $$a(b+c)$$ and $$ab + bc$$.
 Of course here we already have a first test: Can the sequence be parsed into a sympy expression.
 Since the predictions are in hybrid prefix format, the first step is to use the 
-[`hybrid_prefix_to_sympy`
-function](https://github.com/BoGGoG/SYMBA-Prefix/blob/8b6ca5d9f4416c2e4a5c4804abec359064555ba5/sympy-prefix/source/SympyPrefix.py#L498)
-that I wrote.
+[`hybrid_prefix_to_sympy` function](https://github.com/BoGGoG/SYMBA-Prefix/blob/8b6ca5d9f4416c2e4a5c4804abec359064555ba5/sympy-prefix/source/SympyPrefix.py#L498) that I wrote.
 
-Of course, **next token accuaracy** is the easiest one to calculate.
-The next most obvious would be the **token score** as it is called in [the paper](https://arxiv.org/abs/2206.08901).
-It is defined as the number of correct tokens in the correct position,
-$$n_\text{correct}$$, minus the additionally predicted tokens, $$n_\text{extra}$$ divided by the
-true number of tokens, $$n_\text{true}$$:
 
-$$
-S_\text{token} = \frac{n_\text{correct} - n_\text{extra}}{n_\text{true}}
-$$
 
-**Full sequence accuracy**: Since we know that there is only one correct solution after simplification,
-we can simply compare the full sequences.
-Just count the number of tokens that are at the correct position and divide by
-the sequence length.
-Since predicted and true sequence can have different lengths, I propose being conservative
-and dividing by the longer one.
-Otherwise it might happen that one of both is much longer than the other and one divides
-by the shorter one and gets an accuracy of >100%.
-Let's call this the "full-sequence-accuray".
-
-**Numerical accuracy**:
-If the sequence can be parsed into a sympy expression, 
-then one can plug numbers into the true and predicted expressions and check the differences
-in form of (root) mean squared error or mean absolute error.
-The question is what numbers to plug in.
-There are two kinds of numbers: Physical constants and the momenta.
-Physical constants are coupling strengths and masses.
-They can be either taken as the physical values from measurements or as random numbers.
-One problem is that the top quark mass is very high and thus wrong predictions regarding the
-top mass have a much larger impact than say for the electron mass.
-Nevertheless, plugging in the physical values would give an estimate of what kind of numerical error
-one would expect in a real application.
-Plugging in random values would give a better estimate of how well the expressions are reconstructed.
-For the momenta one has to plug in random numbers.
-The question is in what range the random numbers should be and what the distribution should be.
-I have not come up with a reasonable answer yet.
 
 ### Results
-These results are preliminary.
-I am copying them over from the last [blog post]({% post_url 2022-08-29-Update-Symba%}).
 
-Here are the last steps of training:
-<p align="center">
-  <img src="/figures/2022-08-29_training.png">
-</p>
-We can see a few interesting points here:
-- a next-token accuracy of 99.98% is not bad at all. Assuming all predictions are independent (which is of course not true), this would mean that a sequence of length 350 has a probability of $$0.9998^{350}\approx 93.2\%$$ of being fully correct.
-- training and validation accuracy are the same, losses not quite,
-- in the last 9 steps the validation accuracy didn't increase, but the validation loss (sparse categorical cross entropy) went down from `3.65e-4` to `2.55e-4`.
-This is one of the reasons [why](https://stats.stackexchange.com/questions/312780/why-is-accuracy-not-the-best-measure-for-assessing-classification-models) 
-[accuracy](https://stats.stackexchange.com/questions/368949/example-when-using-accuracy-as-an-outcome-measure-will-lead-to-a-wrong-conclusio)
-[is not a good metric.](https://blog.ephorie.de/zeror-the-simplest-possible-classifier-or-why-high-accuracy-can-be-misleading)
-Categorical cross entropy also includes the probabilities the model gives to each token
-and thus the certainty of the model is included, which the accuracy does not know anything about.
-Clearly the model continued learning in epochs 41-50, but the accuracy didn't show this because it was already so high.
-Probably longer training could help increase performance even more.
-
-I have tested the model on 200 training and 200 test amplitudes.
-Inference is standard next-token iterative inference, i.e. one starts with a start token `[START]` and continues predicting
-tokens until the `[END]` token.
-No beam search here.
-The token accuracy results are:
-- train: 0.9812
-- val: 0.9655
-
-Interestingly both are even higher than I had expected from the consideration above.
 
 ## Interpretation and Conclusion
 
+asdf
 
-## Future Work
-There is still a lot to do.
-I will continue working on this project even after GSoC.
 
-### QCD Data
-I am working on QCD data and have already calculated amplitudes up to $$3\to 3$$ processes,
-but simplifying them is still a major task.
-The way my current script does it is:
-- load in all the amplitudes and squared amplitudes
-- in parallel for batches of amplitude/squared amplitude pairs:
-  * preprocess the amplitude
-  * simplify and preprocess the squared amplitude. Timeout if necessary.
-  * collect the whole batch in one array 
-  * write the array to disk
-  * continue with next batch
-
-This does not scale to the amount of QCD data, because my 40GB of RAM are not enough.
-Thus I will have to read in and process in batches.
-
-I plan on repeating the process from the original paper by training on
-- QED data alone,
-- QCD data alone,
-- QED and QCD data.
-
-One of the cool findings of the paper were that the performance on QCD test
-data improved by adding QED data to the training.
-I want to reproduce this with prefix notation.
-
-### Detailed Comparison Between Sequence Lengths
-I want to compare the sequence lengths in infix and hybrid prefix notation
-for QED and QCD.
-
-## Acknowledgements
 
 
 

@@ -88,7 +88,7 @@ Here are the last steps of training:
   <img src="/figures/2022-08-29_training.png">
 </p>
 We can see a few interesting points here:
-- a next-token accuracy of 99.98% is not bad at all. Assuming all predictions are independent (which is of course not true), this would mean that a sequence of length 350 has a probability of $$0.9998^350\approx 93.2\%$$ of being fully correct.
+- a next-token accuracy of 99.98% is not bad at all. Assuming all predictions are independent (which is of course not true), this would mean that a sequence of length 350 has a probability of $$0.9998^{350}\approx 93.2\%$$ of being fully correct.
 - training and validation accuracy are the same, losses not quite,
 - in the last 9 steps the validation accuracy didn't increase, but the validation loss (sparse categorical cross entropy) went down from `3.65e-4` to `2.55e-4`.
 This is one of the reasons why accuracy is not a good metric. Categorical cross entropy also includes the probabilities the model gives to each token
