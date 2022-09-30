@@ -49,18 +49,18 @@ So what can one do with Feynman diagrams?
 Well, each diagram stands for a specific integral that can be constructed using the [Feynman rules](https://en.wikipedia.org/wiki/Feynman_diagram#Feynman_rules)
 for the specific theory you are working with.
 The diagrams can be interpreted in form of particles that interact, e.g. in the diagram below 
-[[from wikipedia](https://en.wikipedia.org/wiki/Feynman_diagram)]
+[[from Wikipedia](https://en.wikipedia.org/wiki/Feynman_diagram)]
 <p align="center">
   <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Feynmann_Diagram_Gluon_Radiation.svg/1280px-Feynmann_Diagram_Gluon_Radiation.svg.png">
 </p>
 an electron $$e^-$$ and a positron $$e^+$$ come in and annihilate to produce a photon $$\gamma$$.
 This (virtual) photon decays into a quark $$q$$ and an anti-quark $$\bar{q}$$.
-The anti-quark emmits a gluon $$g$$ on its way.
+The anti-quark emits a gluon $$g$$ on its way.
 
 Performing the integral will give you the _amplitude_ $$\mathcal{M}$$ of the diagram.
 Typically $$\mathcal{M}$$ will be complex values.
 This amplitude is complex valued and usually contains lots of Lorentz indices $$\{\alpha, \beta, \gamma, \ldots\}$$, $$\gamma$$-matrices $$\gamma^i_{\mu\nu}$$ and "basis function" $$u(p, \sigma)$$.
-When I write "squaring the amplutude" I usually mean more than calculating the norm $$|\mathcal{M}|^2$$, but
+When I write "squaring the amplitude " I usually mean more than calculating the norm $$|\mathcal{M}|^2$$, but
 also taking the average over the incoming spins and summing over the final spins.
 The squaring includes calculating traces over $$\gamma$$-matrices, spin-sums and other tricks, so it is far from trivial.
 For an introduction and example see [Feynman Diagrams for Beginners](https://arxiv.org/pdf/1602.04182.pdf).
@@ -85,30 +85,29 @@ and that can be produced if energies are higher than the value you found.
 
 Here I am only using two theories: [Quantum Electro Dynamics](https://en.wikipedia.org/wiki/Quantum_electrodynamics) (QED) and
 [Quantum Chromo Dynamics](https://en.wikipedia.org/wiki/Quantum_chromodynamics) (QCD).
-While QED describes the electromagnetic interaction between particles, QCD describes the strong force
+While QED describes the electromagnetic interaction between particles, QCD describes the strong force,
 e.g. holding together neutrons and protons in the nucleus of an atom.
 This is actually only a secondary effect, QCD describes the strong interaction between
 quarks and gluon that are present in neutrons and protons.
 While in our best model, the [Standard Model](https://en.wikipedia.org/wiki/Standard_Model),
 QED appears in an extended form called [Electroweak Theory](https://en.wikipedia.org/wiki/Electroweak_interaction) where the
-weak interaction e.g. responsible for the radioactive beta decay, is unified with electromagnetism. 
+weak interaction, e.g. responsible for the radioactive beta decay, is unified with electromagnetism. 
 
 The goal of this project is to teach the squaring of the amplitudes to a neural network.
 The motivation is three-fold:
-- first, to show that it can be done and to explore how it is best done.
+- First, to show that it can be done and to explore how it is best done.
 That it can be done has already been shown in [this paper](https://arxiv.org/pdf/2206.08901.pdf), but I want to explore a different
 encoding of the expressions called _prefix notation_.
-- second, to increase the speed of the calculations. Current computer programs for the calculations can take a very long time already for tree level calculations.
+- Second, to increase the speed of the calculations. Current computer programs for the calculations can take a very long time already for tree level calculations.
 This of course depends on the optimization of the program and the machine learning model.
-- third, it will be interesing to see how the model performs on expressions where current computer programs will never finish in a reasonable time, e.g. loop calculations or $$2\to n$$ calculations with $$n>6$$. 
+- Third, it will be interesting to see how the model performs on expressions where current computer programs will never finish in a reasonable time, e.g. loop calculations or $$2\to n$$ calculations with $$n>6$$. 
 
 
 ## Data Generation
 In order to generate amplitudes and squared amplitudes [MARTY](https://marty.in2p3.fr/) (A **M**odern **AR**tificial **T**eoreteical ph**Y**sicist)
 is used.
-MARTY is written in C++ and can calculate Feynman diagrams in any theory using symbolic computations.
-Implementing a new theory in MARTY however is very complicated,
-thus I am only using QED and QCD data.
+MARTY is written in C++ and can calculate Feynman diagrams up to one-loop in any theory using symbolic computations.
+Implementing a new theory in MARTY however is very complicated, thus I am only using QED and QCD.
 MARTY is built for the symbolic calculation of diagrams, but not for their export.
 The intended use is to build a C++ library which can then be used numerically.
 The export of symbolic amplitudes and squared amplitudes can be achived with some tricks,
@@ -250,8 +249,8 @@ Right now `exp` and `sin` are not working, but they never appear in squared ampl
 The sequence length distributions of the amplitudes and the squared amplitudes can be seen below:
 
 <p float="left">
-  <img src="/figures/placeholder_350.png" width="49%" />
-  <img src="/figures/placeholder_350.png" width="49%" />
+  <img src="/figures/squared_amplitudes_distribution.png" width="49%" />
+  <img src="/figures/amplitudes_distribution.png" width="49%" />
 </p>
 
 In this project I'll be capping the sequence length at 350 and throw away all where either the amplitude or the squared amplitude is longer.
@@ -311,32 +310,6 @@ For each predicted token there is a probability given by the model.
 Say for the first token the probabilities are `["8": 80%, "16": 19%, "2": 0.01%, ...]`.
 Then one chooses the "8", because it has the highest probability.
 We stop once the `[END]` token is predicted or the maximal sequence length is reached.
-
-### Beam Search
-For a good introduction to beam search see [this blogpost](https://www.width.ai/post/what-is-beam-search)
-or [the "Dive into Deep Learning" book](https://d2l.ai/chapter_recurrent-modern/beam-search.html).
-The idea behind beam search is the following:
-Instead of choosing the token with the highest probability, choose the top 2 or 3 and
-"evolve" them separately.
-It might happen that the first token had a lower probability, but the consecutive tokens
-have so much higher probabilities, that the total probability (just multiplicate all consecutive probabilities or add their log probabilities) of the predicted sequence is higher than only always going the "greedy" way.
-Of course, the exact strategies for beam search can vary. 
-A full calculation of all "strains" is usually not computationaly viable,
-but maybe for the first few steps on can take the top 2 or 3 choices.
-
-Actually I think our use case is a bit different than in a real natural language processing task.
-Usually in languages there is not one correct solution, but many.
-Thus, the probabilities can often look like [50%, 20%, 10%, ...].
-in our case however, the model usually has a pretty high confidence like 99.9%.
-I propose a different strategy:
-Every time the model is not sure for a token, say <90%, also take the one with the second highest probability.
-
-
-### Estimation of Uncertainties
-I still have to do this, but my idea is the following:
-For a predicted expression, one can get an extimation of how certain the model is, by
-multiplying the probabilities for all the predicted tokens.
-Using test data, I then will compare the certainty with the actual accuracy.
 
 ## Evaluation
 
@@ -438,16 +411,29 @@ Thus, my conversions from infix to hybrid prefix notation worked.
 The token accuracy also is not bad at 96.55%.
 Still, the accuracy is lower than in the original paper.
 The differences to the original paper are:
-- prefix notation
-- longer sequences, I have used up to 350 and they up to 250
-- hyperparameters: They used 6 layers, 8 heads, 512 embedding dimension and 16384 latent dimension, whereas I used only 2 layers, 256 embedding dimension, 8 heads and 2048 latent dimension. I already have a model with more layers, but training time increases a lot with more layers (I would guess around linearly), so I haven't finished it yet.
-- learning rate schedule
+- prefix notation,
+- longer sequences, I have used up to 350 and they up to 250. Note that there is a huge difference in predicting 250 or 350 tokens. Say you have 99.98% next-token-accuracy. Then $$0.9998^{250} \approx 0.951$$ and $$0.9998^{350} \approx 0.932$$,
+- hyperparameters: They used 6 layers, 8 heads, 512 embedding dimension and 16384 latent dimension, whereas I used only 2 layers, 256 embedding dimension, 8 heads and 2048 latent dimension. I already have a model with more layers, but training time increases a lot with more layers (I would guess around linearly), so I haven't finished it yet,
+- learning rate schedule.
 
 I'm guessing the longer sequences and the different hyperparameters make a big the difference,
 so I cannot compare the change in notations yet.
 
 ## One Caveat: What does the model learn?
-TODO
+I am still not sure about this point.
+The training data consists of amplitudes and squared amplitudes from processes up to $$2\to 3$$. 
+In QED the particles considered are electron, muons, tauons and up/down/strange/charm/bottom/top quarks.
+The thing is: In QED they only interact through electromagnetism, so there is a symmetry between ALL OF THEM.
+Let's say we take the process $$e^- + e^+ \to \gamma + \gamma$$, an electron and a positron annihilating and resulting in two photons
+(one photon is not possible due to [conservation of linear momentum and total energy](https://en.wikipedia.org/wiki/Annihilation#Examples)).
+The amplitude will be the same as for $$\mu + \bar{\mu} \to \gamma + \gamma$$ with adjusted massses $$m_e \to m_\mu$$ since we are only taking the electromagnetic interactions into account.
+Since we have so many particles that act in the same way under the electromagnetic interaction, we will get many amplitudes and squared amplitudes that have exactly the same form but with different masses plugged in.
+Now the question is: Did the model actually learn anything or did it simply remember the structures of the amplitudes and squared amplitudes and what to replace?
+If so, is this bad or is this what we want?
+How would this affect completely unseen diagrams?
+
+I want to test this in the future by writing a function to filter out "equivalence classes" in amplitudes and squared amplitudes.
+Then I can take out a full class of amplitudes from the training data and later test on them.
 
 ## Future Work
 There is still a lot to do.
@@ -525,7 +511,38 @@ For example we could square a number or a basis function $$u_s(p)$$ and so on.
 Right now with learning only done on full amplitudes, the model implicitely has to figure out itself what the square of $$u_s(p)$$ is.
 Using the approach with artificial amplitudes would not only generate much more data, but also help the model not overfit on the amplitudes themselves.
 
+
+### Beam Search
+For a good introduction to beam search see [this blogpost](https://www.width.ai/post/what-is-beam-search)
+or [the "Dive into Deep Learning" book](https://d2l.ai/chapter_recurrent-modern/beam-search.html).
+The idea behind beam search is the following:
+Instead of choosing the token with the highest probability, choose the top 2 or 3 and
+"evolve" them separately.
+It might happen that the first token had a lower probability, but the consecutive tokens
+have so much higher probabilities, that the total probability (just multiplicate all consecutive probabilities or add their log probabilities) of the predicted sequence is higher than only always going the "greedy" way.
+Of course, the exact strategies for beam search can vary. 
+A full calculation of all "strains" is usually not computationaly viable,
+but maybe for the first few steps on can take the top 2 or 3 choices.
+
+Actually I think our use case is a bit different than in a real natural language processing task.
+Usually in languages there is not one correct solution, but many.
+Thus, the probabilities can often look like [50%, 20%, 10%, ...].
+in our case however, the model usually has a pretty high confidence like 99.9%.
+I propose a different strategy:
+Every time the model is not sure for a token, say <90%, also take the one with the second highest probability.
+
+
+### Estimation of Uncertainties
+I still have to do this, but my idea is the following:
+For a predicted expression, one can get an extimation of how certain the model is, by
+multiplying the probabilities for all the predicted tokens.
+Using test data, I then will compare the certainty with the actual accuracy.
+
+
 ## Acknowledgements
+I want to thank Google for making this [Google Summer of Code Project](https://summerofcode.withgoogle.com/) possible.
+I also want to thank Sergei Gleyzer, Abdulhakim Alnuqaydan and Harrison Prosper for mentoring me.
+Lastly, I want to thank Grégoire Uhlrich for MARTY and for the support in installing and using it.
 
 
 
