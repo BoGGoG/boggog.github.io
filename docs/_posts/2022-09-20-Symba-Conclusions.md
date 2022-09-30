@@ -8,28 +8,28 @@ categories: machine learning feynman physics symba
 This is the concluding and summarizing post to the GSoC [SYMBA project]({% post_url 2022-07-14-Introduction-Feynman-Amplitudes-Project %}).
 I does not mean that I won't be posting about it any more, but it's for the official ending of the GSoC project.
 
-
 * [Introduction](#introduction)
 * [Data Generation](#data-generation)
-  * [Preprocessing](#preprocessing)
-     * [Amplitudes](#amplitudes)
-     * [Squared Amplitudes](#squared-amplitudes)
-  * [Encoding of Expressions](#encoding-of-expressions)
+   * [Preprocessing](#preprocessing)
+      * [Amplitudes](#amplitudes)
+      * [Squared Amplitudes](#squared-amplitudes)
+   * [Encoding of Expressions](#encoding-of-expressions)
 * [Transformer Model](#transformer-model)
 * [Training](#training)
 * [Inference](#inference)
 * [Evaluation](#evaluation)
-  * [Viable Evaluation Measures](#viable-evaluation-measures)
-  * [Results](#results)
+   * [Viable Evaluation Measures](#viable-evaluation-measures)
+   * [Results](#results)
 * [Interpretation](#interpretation)
 * [One Caveat: What does the model learn?](#one-caveat-what-does-the-model-learn)
 * [Future Work](#future-work)
-  * [Compare Notations](#compare-notations)
-  * [QCD Data](#qcd-data)
-  * [Detailed Comparison Between Sequence Lengths](#detailed-comparison-between-sequence-lengths)
-  * [More Artificial Amplitudes](#more-artificial-amplitudes)
-  * [Beam Search](#beam-search)
-  * [Estimation of Uncertainties](#estimation-of-uncertainties)
+   * [Compare Notations](#compare-notations)
+   * [QCD Data](#qcd-data)
+   * [Detailed Comparison Between Sequence Lengths](#detailed-comparison-between-sequence-lengths)
+   * [More Artificial Amplitudes](#more-artificial-amplitudes)
+   * [Beam Search](#beam-search)
+   * [Positional Encoding: Symmetries?](#positional-encoding-symmetries)
+   * [Estimation of Uncertainties](#estimation-of-uncertainties)
 * [Conclusion](#conclusion)
 * [Personal Conclusions](#personal-conclusions)
 * [Acknowledgements](#acknowledgements)
@@ -105,7 +105,8 @@ This of course depends on the optimization of the program and the machine learni
 ## Data Generation
 In order to generate amplitudes and squared amplitudes [MARTY](https://marty.in2p3.fr/) (A **M**odern **AR**tificial **T**eoreteical ph**Y**sicist)
 is used.
-MARTY is written in C++ and can calculate Feynman diagrams up to one-loop in any theory using symbolic computations.
+MARTY is a fantastic program fully written in C++ and can calculate Feynman diagrams up to one-loop in any theory using symbolic computations.
+The author even wrote the full symbolic computation library (CSL) from scratch in C++.
 Implementing a new theory in MARTY however is very complicated, thus I am only using QED and QCD.
 MARTY is built for the symbolic calculation of diagrams, but not for their export.
 The intended use is to build a C++ library which can then be used numerically.
@@ -529,6 +530,22 @@ Thus, the probabilities can often look like [50%, 20%, 10%, ...].
 in our case however, the model usually has a pretty high confidence like 99.9%.
 I propose a different strategy:
 Every time the model is not sure for a token, say <90%, also take the one with the second highest probability.
+
+
+### Positional Encoding: Symmetries?
+Transformers are set2set models, they by default don't know anything about the order of the elements.
+One usually supplies the order through "positional encoding", which is a whole topic on its own.
+The expression we supply have symmetries that are not manifest in the notation.
+For example $$a+b$$ is represented as `sum a b` but is the same as `sum b a` ($$a+b$$).
+Now, instead of normal positional encoding, one could implement an encoding where the two tokens `a` and `b`
+get the exact same encoding in the sequence above.
+This way the symmetries could be supplied directly through the positional encoding. 
+
+A possible draw-back of this method could be performance.
+I'm not sure there is a way of implementing this encoding without parsing the expression.
+I know there is the possibility of learning the positional encoding, so it might also be possible to do
+pre-training where the positional encoder learns the encoding I describe by forcing it to give the same
+positional encoding for $$a+b$$ and $$b+a$$.
 
 
 ### Estimation of Uncertainties
