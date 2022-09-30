@@ -548,7 +548,7 @@ influence the quality of predictions.
 
 ## Personal Conclusions
 While I managed to generate data, convert to prefix notation and train models, I didn't get as far as I planned to.
-First, data generation took much longer than estimated.
+First, writing the programs for data generation took much longer than estimated.
 This is partly because it took me a few desperate weeks trying to install MARTY until I contacted the developer
 and he helped me, also fixing bugs in the installer.
 Then, I had underestimated the complexity of MARTY.
