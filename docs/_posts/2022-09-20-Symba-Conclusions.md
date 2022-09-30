@@ -6,33 +6,32 @@ categories: machine learning feynman physics symba
 ---
 
 This is the concluding and summarizing post to the GSoC [SYMBA project]({% post_url 2022-07-14-Introduction-Feynman-Amplitudes-Project %}).
-I doees not mean that I won't be posting about it any more, but it's for the official ending of the GSoC project.
+I does not mean that I won't be posting about it any more, but it's for the official ending of the GSoC project.
 
-Table of Contents
-=================
 
-* [Table of Contents](#table-of-contents)
 * [Introduction](#introduction)
 * [Data Generation](#data-generation)
-   * [Preprocessing](#preprocessing)
-      * [Amplitudes](#amplitudes)
-      * [Squared Amplitudes](#squared-amplitudes)
-   * [Encoding of Expressions](#encoding-of-expressions)
+  * [Preprocessing](#preprocessing)
+     * [Amplitudes](#amplitudes)
+     * [Squared Amplitudes](#squared-amplitudes)
+  * [Encoding of Expressions](#encoding-of-expressions)
 * [Transformer Model](#transformer-model)
 * [Training](#training)
 * [Inference](#inference)
-   * [Beam Search](#beam-search)
-   * [Estimation of Uncertainties](#estimation-of-uncertainties)
 * [Evaluation](#evaluation)
-   * [Viable Evaluation Measures](#viable-evaluation-measures)
-   * [Results](#results)
-* [Interpretation and Conclusion](#interpretation-and-conclusion)
+  * [Viable Evaluation Measures](#viable-evaluation-measures)
+  * [Results](#results)
+* [Interpretation](#interpretation)
 * [One Caveat: What does the model learn?](#one-caveat-what-does-the-model-learn)
 * [Future Work](#future-work)
-   * [Compare Notations](#compare-notations)
-   * [QCD Data](#qcd-data)
-   * [Detailed Comparison Between Sequence Lengths](#detailed-comparison-between-sequence-lengths)
-   * [More Artificial Amplitudes](#more-artificial-amplitudes)
+  * [Compare Notations](#compare-notations)
+  * [QCD Data](#qcd-data)
+  * [Detailed Comparison Between Sequence Lengths](#detailed-comparison-between-sequence-lengths)
+  * [More Artificial Amplitudes](#more-artificial-amplitudes)
+  * [Beam Search](#beam-search)
+  * [Estimation of Uncertainties](#estimation-of-uncertainties)
+* [Conclusion](#conclusion)
+* [Personal Conclusions](#personal-conclusions)
 * [Acknowledgements](#acknowledgements)
 
 ## Introduction
@@ -110,12 +109,12 @@ MARTY is written in C++ and can calculate Feynman diagrams up to one-loop in any
 Implementing a new theory in MARTY however is very complicated, thus I am only using QED and QCD.
 MARTY is built for the symbolic calculation of diagrams, but not for their export.
 The intended use is to build a C++ library which can then be used numerically.
-The export of symbolic amplitudes and squared amplitudes can be achived with some tricks,
+The export of symbolic amplitudes and squared amplitudes can be archived with some tricks,
 but I had troubles looping over particles.
 Thus the data generation workflow is the following:
 - I wrote a [C++ program](https://github.com/BoGGoG/SYMBA-Prefix/blob/main/data-generation-marty/QED/QED_AllParticles_IO.cpp) for the calculation and export of amplitudes and squared amplitudes using MARTY.
 This program can be called from the command line and takes as input the names of the in- and out-particles as well as the file names where the amplitudes and squared amplitudes should be saved.
-The program already exports the amplitudes in some form of prefix notation or more precicely in some
+The program already exports the amplitudes in some form of prefix notation or more precisely in some
 form of abstract syntax tree.
 It was easier to do it this way than write a parser in python for them in Python.
 - In a separate [Python script](https://github.com/BoGGoG/SYMBA-Prefix/blob/main/data-generation-marty/QED/QED_loop_insertions_parallel.py)
@@ -405,7 +404,7 @@ The token accuracy results are:
 
 Interestingly both are even higher than I had expected from the consideration above.
 
-## Interpretation and Conclusion
+## Interpretation
 The transformer model learned to predict the squared amplitudes from amplitudes for QED data with hybrid prefix notation.
 Thus, my conversions from infix to hybrid prefix notation worked.
 The token accuracy also is not bad at 96.55%.
@@ -539,10 +538,48 @@ multiplying the probabilities for all the predicted tokens.
 Using test data, I then will compare the certainty with the actual accuracy.
 
 
+## Conclusion
+In this project I have shown that a vanilla transformer can learn to predict squared amplitudes in QED
+if they are encoded in prefix notation.
+The performance is close to the performance in the paper.
+I will continue the studies on the topic and explore how well different notations and model architectures
+influence the quality of predictions.
+
+
+## Personal Conclusions
+While I managed to generate data, convert to prefix notation and train models, I didn't get as far as I planned to.
+First, data generation took much longer than estimated.
+This is partly because it took me a few desperate weeks trying to install MARTY until I contacted the developer
+and he helped me, also fixing bugs in the installer.
+Then, I had underestimated the complexity of MARTY.
+I am not a C++ programmer and it took me more than a week to write a command line interface for MARTY in C++ so I can
+call it from Python and do the rest in Python.
+
+Then, data generation also took very long.
+Since I wanted the amplitudes in prefix notation and the standard output format cannot be read by Sympy (since it contains indices etc),
+I had to write functions in C++ to convert the amplitudes to prefix notation (not hybrid prefix!).
+The squared amplitudes can be read by sympy.
+
+After writing the functions to convert sympy expressions to prefix notation (why is it not possible to get the [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) for an expression in sympy???) I realized that prefix notation for long sums and products is counter-productive, see above.
+Thus I invented and implemented the hybrid prefix notation.
+While converting expressions from sympy to hybrid prefix notation was rather quick, going back took me a few days.
+When writing recursive algorithms it's usually moslty all-or-nothing.
+It either works or not, but building it step-by-step is often not easy or possible.
+
+Next, reading the squared amplitudes in sympy, simplification and conversion to hybrid prefix, is not as easy as it sounds.
+It turns out that sympy sometimes gets hick-ups and never finishes the calculation.
+Allegedly this is because an unlucky draw of random numbers.
+I implemented functions to stop simplification after a certain timeout time.
+Connecting this with parallel executions in Python took quite long.
+Still, on 19 cores the simplification of $$2\to 3$$ QED amplitudes takes about a day or longer.
+Thus I implemented a feature to stop the execution and continue later, because I also needed my PC for things like meetings.
+
+Summarizing I can say that I have learned a lot during this project.
+I especially enjoyed coming up and implementing recursive algorithms for prefix and hybrid prefix notation.
+Well, I enjoyed it when it worked xD
+
+
 ## Acknowledgements
 I want to thank Google for making this [Google Summer of Code Project](https://summerofcode.withgoogle.com/) possible.
-I also want to thank Sergei Gleyzer, Abdulhakim Alnuqaydan and Harrison Prosper for mentoring me.
-Lastly, I want to thank Grégoire Uhlrich for MARTY and for the support in installing and using it.
-
-
-
+I want to thank Grégoire Uhlrich for MARTY and for the support in installing and using it.
+Lastly, I want to thank Sergei Gleyzer, Abdulhakim Alnuqaydan and Harrison Prosper for mentoring me.
