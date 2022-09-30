@@ -1,13 +1,17 @@
 ---
 layout: post
 title: "SYMBA Conclusions"
-date: 2022-09-20 9:12
+date: 2022-09-30 9:12
 categories: machine learning feynman physics symba
 ---
 
-This is the concluding post to the GCoC [SYMBA project]({% post_url 2022-07-14-Introduction-Feynman-Amplitudes-Project %}).
-I doees not mean that I won't be posting about it any more, but it's for the official ending of theh GSoC project.
+This is the concluding and summarizing post to the GSoC [SYMBA project]({% post_url 2022-07-14-Introduction-Feynman-Amplitudes-Project %}).
+I doees not mean that I won't be posting about it any more, but it's for the official ending of the GSoC project.
 
+Table of Contents
+=================
+
+* [Table of Contents](#table-of-contents)
 * [Introduction](#introduction)
 * [Data Generation](#data-generation)
    * [Preprocessing](#preprocessing)
@@ -23,14 +27,20 @@ I doees not mean that I won't be posting about it any more, but it's for the off
    * [Viable Evaluation Measures](#viable-evaluation-measures)
    * [Results](#results)
 * [Interpretation and Conclusion](#interpretation-and-conclusion)
+* [One Caveat: What does the model learn?](#one-caveat-what-does-the-model-learn)
+* [Future Work](#future-work)
+   * [Compare Notations](#compare-notations)
+   * [QCD Data](#qcd-data)
+   * [Detailed Comparison Between Sequence Lengths](#detailed-comparison-between-sequence-lengths)
+   * [More Artificial Amplitudes](#more-artificial-amplitudes)
 * [Acknowledgements](#acknowledgements)
 
 ## Introduction
 
-In quantum field theory (QFT) so called "Feynman diagrams" arise naturally when calculating things in a perturbative manner.
+In quantum field theory (QFT) so called "Feynman diagrams" arise naturally in calculation.
 For example, the [scattering-matrix](https://en.wikipedia.org/wiki/S-matrix) (S-matrix) describes the scattering of particles in QFT.
-Using [Wick's theorem](https://en.wikipedia.org/wiki/Wick%27s_theorem) to get the perturbative expansion,
-each order can be represented as a sum of Feynman diagrams.
+Using [Wick's theorem](https://en.wikipedia.org/wiki/Wick%27s_theorem) to get the perturbative expansion (like a [Taylor series](https://en.wikipedia.org/wiki/Taylor_series)),
+each order of the expansion can be represented as a sum of Feynman diagrams.
 While the expansion can be divergent (as described in [one of my earlier posts]({% post_url 2022-07-14-Introduction-Feynman-Amplitudes-Project %})),
 they are still incredibly useful and the asymptotic character of the series will only reveal itself directly at orders that
 probably will never be accessible.
@@ -48,11 +58,13 @@ This (virtual) photon decays into a quark $$q$$ and an anti-quark $$\bar{q}$$.
 The anti-quark emmits a gluon $$g$$ on its way.
 
 Performing the integral will give you the _amplitude_ $$\mathcal{M}$$ of the diagram.
-This amplitude is complex valued and usually contains lots of Lorentz indices $$\alpha, \beta, \gamma$$, $$\gamma$$-matrices $$\gamma^i_{\mu\nu}$$ and "basis vectors" $$u(p, \sigma)$$.
-Squaring the amplutude involves calculating traces over $$\gamma$$-matrices, spin-sums and other tricks,
-so it is far from trivial.
+Typically $$\mathcal{M}$$ will be complex values.
+This amplitude is complex valued and usually contains lots of Lorentz indices $$\{\alpha, \beta, \gamma, \ldots\}$$, $$\gamma$$-matrices $$\gamma^i_{\mu\nu}$$ and "basis function" $$u(p, \sigma)$$.
+When I write "squaring the amplutude" I usually mean more than calculating the norm $$|\mathcal{M}|^2$$, but
+also taking the average over the incoming spins and summing over the final spins.
+The squaring includes calculating traces over $$\gamma$$-matrices, spin-sums and other tricks, so it is far from trivial.
 For an introduction and example see [Feynman Diagrams for Beginners](https://arxiv.org/pdf/1602.04182.pdf).
-With the squared amplitude however, one can then calculate measurable quantities.
+With the squared amplitude, one can then calculate measurable quantities.
 For a scattering process $$2\to 2$$ this would be the _differential [scattering cross section](https://en.wikipedia.org/wiki/Cross_section_(physics))_ $$\mathrm{d}\sigma(1 + 2 \to 1' + 2' + ... + n')$$, see for example [here](https://arxiv.org/pdf/1602.04182.pdf):
 
 $$
@@ -63,6 +75,13 @@ where $$E_i$$ and $$p_i$$ are the energies and momenta of the particles.
 Similar expressions can be calculated for $$2\to n$$ processes.
 For $$1\to n$$ processes, also called _decays_, the respective quantity is not called scattering cross section,
 but _decay width_ and usually denoted by $$\Gamma(1\to 1' + 2' + ... + n')$$.
+
+These probabilities then help to discover new physics.
+Say you calculate the cross section $$\sigma$$ for some process.
+It will usually depend on the momenta and energies of the particles.
+Then you measure the process very often and see that it looks like your predictions except for energies higher than a certain value. 
+What happened? Well, it might be that there is a particle you did not take into consideration in your calculations
+and that can be produced if energies are higher than the value you found.
 
 Here I am only using two theories: [Quantum Electro Dynamics](https://en.wikipedia.org/wiki/Quantum_electrodynamics) (QED) and
 [Quantum Chromo Dynamics](https://en.wikipedia.org/wiki/Quantum_chromodynamics) (QCD).
@@ -95,12 +114,12 @@ The intended use is to build a C++ library which can then be used numerically.
 The export of symbolic amplitudes and squared amplitudes can be achived with some tricks,
 but I had troubles looping over particles.
 Thus the data generation workflow is the following:
-- there is a [C++ program](https://github.com/BoGGoG/SYMBA-Prefix/blob/main/data-generation-marty/QED/QED_AllParticles_IO.cpp) for the calculation and export of amplitudes and squared amplitudes.
+- I wrote a [C++ program](https://github.com/BoGGoG/SYMBA-Prefix/blob/main/data-generation-marty/QED/QED_AllParticles_IO.cpp) for the calculation and export of amplitudes and squared amplitudes using MARTY.
 This program can be called from the command line and takes as input the names of the in- and out-particles as well as the file names where the amplitudes and squared amplitudes should be saved.
 The program already exports the amplitudes in some form of prefix notation or more precicely in some
 form of abstract syntax tree.
 It was easier to do it this way than write a parser in python for them in Python.
-- in a separate [Python script](https://github.com/BoGGoG/SYMBA-Prefix/blob/main/data-generation-marty/QED/QED_loop_insertions_parallel.py)
+- In a separate [Python script](https://github.com/BoGGoG/SYMBA-Prefix/blob/main/data-generation-marty/QED/QED_loop_insertions_parallel.py)
 all combinations of in- and out-particles are calculated and separate processes are spawned calling the C++ script.
 In order to avoid [race conditions](https://en.wikipedia.org/wiki/Race_condition) with parallelization, each process writes to its own file.
 This results in a lot of files (28224 for QED 2 to 3 processes), which is probably not good for the SSD and would not be allowed on a cluster,
@@ -228,18 +247,31 @@ I have tested it on 1000 QCD amplitudes and on some random expressions
 like ```8*g**4*(2*m**4 - m**2*(s+d)**2)```.
 Right now `exp` and `sin` are not working, but they never appear in squared amplitudes.
 
+The sequence length distributions of the amplitudes and the squared amplitudes can be seen below:
+
+<p float="left">
+  <img src="/figures/placeholder_350.png" width="49%" />
+  <img src="/figures/placeholder_350.png" width="49%" />
+</p>
+
+In this project I'll be capping the sequence length at 350 and throw away all where either the amplitude or the squared amplitude is longer.
 
 ## Transformer Model
 
 The model I have used is a simple transformer and can be seen in [this script](https://github.com/BoGGoG/SYMBA-Prefix/blob/main/models/QED/QED_transformer/2022_08_24_QED_Transformer.ipynb).
 The transformer architecture has conquered the deep learning landscape quickly after the introduction
 in the famous paper called ["Attention Is All You Need"](https://arxiv.org/abs/1706.03762).
-As the name of the paper indicates, transformers are based on the attention mechanism.
-They are usually sequence2sequence models with an encoder-decoder structure, although other variants
-definitely exist.
+In the plot below from the same paper you can see the transformer architecture.
+<p float="center">
+  <img src="/figures/Transformer.png" width="50%" />
+</p>
+
+As the name of the paper indicates, transformers are based on the [attention mechanism](https://en.wikipedia.org/wiki/Attention_(machine_learning)).
+Explaining attention will take too long for this post, but in short the model learns on which parts to focus its attention.
+Transformers are sequence2sequence models with an encoder-decoder structure, although other variants definitely exist.
 Now they not only dominate in language models, but also in computer vision [reference needed].
 
-The code is mostly an adapted version of [keras's english-to-spanish translation](https://keras.io/examples/nlp/neural_machine_translation_with_transformer/) tutorial.
+The code I am using is mostly an adapted version of [keras's english-to-spanish translation](https://keras.io/examples/nlp/neural_machine_translation_with_transformer/) tutorial.
 I have to admit that I am not satisfied this, but the other parts have simply taken so long that not enough
 time was left for a better model.
 The transformer has an embedding dimension of 256, a latent dimension of 2048 and 8 heads.
@@ -401,11 +433,38 @@ The token accuracy results are:
 Interestingly both are even higher than I had expected from the consideration above.
 
 ## Interpretation and Conclusion
+The transformer model learned to predict the squared amplitudes from amplitudes for QED data with hybrid prefix notation.
+Thus, my conversions from infix to hybrid prefix notation worked.
+The token accuracy also is not bad at 96.55%.
+Still, the accuracy is lower than in the original paper.
+The differences to the original paper are:
+- prefix notation
+- longer sequences, I have used up to 350 and they up to 250
+- hyperparameters: They used 6 layers, 8 heads, 512 embedding dimension and 16384 latent dimension, whereas I used only 2 layers, 256 embedding dimension, 8 heads and 2048 latent dimension. I already have a model with more layers, but training time increases a lot with more layers (I would guess around linearly), so I haven't finished it yet.
+- learning rate schedule
 
+I'm guessing the longer sequences and the different hyperparameters make a big the difference,
+so I cannot compare the change in notations yet.
+
+## One Caveat: What does the model learn?
+TODO
 
 ## Future Work
 There is still a lot to do.
 I will continue working on this project even after GSoC.
+
+### Compare Notations
+The obvous thing to do is to compare infix notation and prefix notation with the exact same model.
+This will show if it is worth further exploring the prefix notation or not.
+A full evaluation would include infix, prefix and hybrid prefix data.
+Of course they will have different sequence lengths.
+While a comparison between the sequence lengths will be interesting and certainly worth exploring,
+it will also make the comparison between model performances more complicated.
+I will have to choose a maximal sequence length for the model, say 350.
+Then, the models have to be trained on the differently encoded dataset.
+Best would probably be to have the train/test split done before encoding.
+Then each model can train on as much training data as it works with (depending on sequence length),
+but testing should be done on the exact same data (with different encodings of course).
 
 ### QCD Data
 I am working on QCD data and have already calculated amplitudes up to $$3\to 3$$ processes,
@@ -434,6 +493,37 @@ I want to reproduce this with prefix notation.
 ### Detailed Comparison Between Sequence Lengths
 I want to compare the sequence lengths in infix and hybrid prefix notation
 for QED and QCD.
+
+
+### More Artificial Amplitudes
+When we look at what data natural language translation models are trained on, let's say the English-German dataset from [Anki](https://www.manythings.org/anki/):
+
+> Do you teach?	Unterrichtest du?   
+> Do you teach?	Lehrst du?   
+> Do you teach?	Unterrichten Sie?   
+> Do your best!	Gib dein Bestes!   
+> Do your best!	Gebt euer Bestes!   
+> Do your best!	Geben Sie Ihr Bestes!   
+> Do your best.	Gib dein Bestes.   
+> Do your best.	Geben Sie Ihr Bestes!   
+> Do your duty.	Tu deine Pflicht.   
+> Does it hurt?	Tut’s weh?   
+> Does it show?	Merkt man es?   
+> Does it work?	Klappt das?   
+> Does it work?	Funktioniert das?   
+> Does it work?	Funktioniert’s?   
+> Does it work?	Klappt es?   
+> Dogs are fun.	Hunde machen Freude.   
+> Dogs are fun.	Hunde machen Spaß.   
+> Don't ask me.	Frag mich nicht.   
+
+then we can see that there are lots of short sentences and they often don't differ very much.
+We could generate a lot more data by taking some basic building blocks of amplitudes and "squaring" them using MARTY.
+Let's call these the "artificial amplitudes" since they are not physical amplitudes.
+By "squaring" I actually mean taking the squared amplitude of the complex number and calculating the spin sums, which both are not trivial.
+For example we could square a number or a basis function $$u_s(p)$$ and so on.
+Right now with learning only done on full amplitudes, the model implicitely has to figure out itself what the square of $$u_s(p)$$ is.
+Using the approach with artificial amplitudes would not only generate much more data, but also help the model not overfit on the amplitudes themselves.
 
 ## Acknowledgements
 
